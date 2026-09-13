@@ -729,6 +729,376 @@ function requireUser() {
 
 
 /* =========================================================
+   MOBILE NAVIGATION
+
+   The button and mobile styles are created here so the
+   existing HTML files and styles.css do not need editing.
+   Desktop navigation is left unchanged.
+   ========================================================= */
+
+function initMobileNavigation() {
+
+  const styleId =
+    'almurattil-mobile-navigation-styles';
+
+
+  if (!document.getElementById(styleId)) {
+
+    const style =
+      document.createElement('style');
+
+
+    style.id =
+      styleId;
+
+
+    style.textContent = `
+      .mobile-nav-toggle {
+        display: none !important;
+      }
+
+      @media (max-width: 820px) {
+        .has-mobile-navigation {
+          position: relative;
+        }
+
+        .mobile-nav-toggle {
+          display: inline-flex !important;
+          width: 44px;
+          height: 44px;
+          margin-left: auto;
+          padding: 0;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 5px;
+          color: var(--primary, #174d3b);
+          background: var(--surface, #ffffff);
+          border: 1px solid rgba(23, 77, 59, 0.22);
+          border-radius: 12px;
+          box-shadow: 0 5px 16px rgba(0, 0, 0, 0.08);
+          cursor: pointer;
+          touch-action: manipulation;
+          z-index: 1002;
+        }
+
+        .mobile-nav-toggle:hover,
+        .mobile-nav-toggle:focus-visible {
+          background: rgba(23, 77, 59, 0.08);
+        }
+
+        .mobile-nav-toggle:focus-visible {
+          outline: 3px solid rgba(200, 157, 56, 0.38);
+          outline-offset: 2px;
+        }
+
+        .mobile-nav-toggle span {
+          display: block;
+          width: 22px;
+          height: 2px;
+          border-radius: 999px;
+          background: currentColor;
+          transition: transform 180ms ease, opacity 180ms ease;
+        }
+
+        .mobile-nav-toggle.is-open span:nth-child(1) {
+          transform: translateY(7px) rotate(45deg);
+        }
+
+        .mobile-nav-toggle.is-open span:nth-child(2) {
+          opacity: 0;
+        }
+
+        .mobile-nav-toggle.is-open span:nth-child(3) {
+          transform: translateY(-7px) rotate(-45deg);
+        }
+
+        .has-mobile-navigation > .navlinks[data-mobile-menu-ready="true"] {
+          display: none !important;
+          position: absolute !important;
+          top: calc(100% + 10px);
+          right: 0;
+          left: auto;
+          width: min(320px, calc(100vw - 32px));
+          margin: 0;
+          padding: 10px;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 4px !important;
+          background: var(--surface, #ffffff);
+          border: 1px solid rgba(23, 77, 59, 0.14);
+          border-radius: 16px;
+          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.16);
+          z-index: 1001;
+        }
+
+        .has-mobile-navigation > .navlinks[data-mobile-menu-ready="true"].is-open {
+          display: flex !important;
+        }
+
+        .has-mobile-navigation > .navlinks[data-mobile-menu-ready="true"] a {
+          display: block;
+          width: 100%;
+          margin: 0;
+          padding: 12px 14px;
+          border-radius: 10px;
+          text-align: left;
+        }
+      }
+    `;
+
+
+    document.head.appendChild(
+      style
+    );
+  }
+
+
+  $$('.navlinks')
+    .forEach((navLinks, index) => {
+
+      if (
+        navLinks.dataset
+          .mobileMenuReady ===
+        'true'
+      ) {
+
+        return;
+      }
+
+
+      const container =
+        navLinks.parentElement;
+
+
+      if (!container) {
+
+        return;
+      }
+
+
+      const navId =
+        navLinks.id ||
+        `mobile-navigation-${index + 1}`;
+
+
+      navLinks.id =
+        navId;
+
+
+      navLinks.dataset
+        .mobileMenuReady =
+        'true';
+
+
+      container.classList.add(
+        'has-mobile-navigation'
+      );
+
+
+      const button =
+        document.createElement('button');
+
+
+      button.type =
+        'button';
+
+
+      button.className =
+        'mobile-nav-toggle';
+
+
+      button.setAttribute(
+        'aria-label',
+        'Open navigation menu'
+      );
+
+
+      button.setAttribute(
+        'aria-controls',
+        navId
+      );
+
+
+      button.setAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+
+      button.innerHTML =
+        '<span></span><span></span><span></span>';
+
+
+      container.insertBefore(
+        button,
+        navLinks
+      );
+
+
+      const closeMenu = () => {
+
+        navLinks.classList.remove(
+          'is-open'
+        );
+
+
+        button.classList.remove(
+          'is-open'
+        );
+
+
+        button.setAttribute(
+          'aria-expanded',
+          'false'
+        );
+
+
+        button.setAttribute(
+          'aria-label',
+          'Open navigation menu'
+        );
+      };
+
+
+      const openMenu = () => {
+
+        navLinks.classList.add(
+          'is-open'
+        );
+
+
+        button.classList.add(
+          'is-open'
+        );
+
+
+        button.setAttribute(
+          'aria-expanded',
+          'true'
+        );
+
+
+        button.setAttribute(
+          'aria-label',
+          'Close navigation menu'
+        );
+      };
+
+
+      button.addEventListener(
+        'click',
+        event => {
+
+          event.stopPropagation();
+
+
+          if (
+            navLinks.classList
+              .contains('is-open')
+          ) {
+
+            closeMenu();
+
+          } else {
+
+            openMenu();
+          }
+        }
+      );
+
+
+      navLinks.addEventListener(
+        'click',
+        event => {
+
+          if (
+            event.target.closest('a')
+          ) {
+
+            closeMenu();
+          }
+        }
+      );
+
+
+      document.addEventListener(
+        'click',
+        event => {
+
+          if (
+            !container.contains(
+              event.target
+            )
+          ) {
+
+            closeMenu();
+          }
+        }
+      );
+
+
+      document.addEventListener(
+        'keydown',
+        event => {
+
+          if (
+            event.key ===
+            'Escape'
+
+            &&
+
+            navLinks.classList
+              .contains('is-open')
+          ) {
+
+            closeMenu();
+
+
+            button.focus();
+          }
+        }
+      );
+
+
+      const desktopView =
+        window.matchMedia(
+          '(min-width: 821px)'
+        );
+
+
+      const closeOnDesktop =
+        event => {
+
+          if (event.matches) {
+
+            closeMenu();
+          }
+        };
+
+
+      if (
+        typeof desktopView
+          .addEventListener ===
+        'function'
+      ) {
+
+        desktopView.addEventListener(
+          'change',
+          closeOnDesktop
+        );
+
+      } else {
+
+        desktopView.addListener(
+          closeOnDesktop
+        );
+      }
+    });
+}
+
+
+/* =========================================================
    ACTIVE NAVIGATION
    ========================================================= */
 
@@ -1323,6 +1693,8 @@ document.addEventListener(
     /*
        Existing behaviour
     */
+
+    initMobileNavigation();
 
     setActiveNav();
 
