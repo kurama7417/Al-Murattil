@@ -44,3 +44,8 @@ There are no public Student, Teacher or Admin portal links. Everyone uses the sa
 The standalone version stores data in the current browser using localStorage. This is only for interface and workflow testing. Data is not shared between devices and is not secure for production use.
 
 When Supabase is connected, the same pages and workflow can remain while the localStorage functions are replaced by Supabase Auth and database calls.
+
+
+## Supabase connection added
+This build now loads the Supabase JavaScript client in every page and initializes `supabaseClient` in `common.js`.
+The existing localStorage demo logic has been preserved unchanged; no data workflow has been migrated yet.

@@ -1,3 +1,7 @@
+const SUPABASE_URL='https://gdbcfvnqfjduxmrksdfe.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_BEAC-BvYycE7ia4UMx6TUg_-gWt6mM3';
+const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
 const $=(s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const STORE_KEY='almurattil_demo_v1'; const SESSION_KEY='almurattil_demo_session';
 const seed={
