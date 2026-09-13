@@ -1,13 +1,29 @@
 /* =========================================================
    AL MURATTIL QURAN INSTITUTE
-   common.js
+   COMMON.JS
 
-   IMPORTANT:
-   - Existing localStorage workflows are preserved.
-   - Supabase is currently used only to sync course data.
-   - Users, applications, enrollments, announcements,
-     teacher applications and sessions remain unchanged.
+   Current website functionality is preserved.
+   Supabase is currently used only for course synchronisation.
    ========================================================= */
+
+
+/* =========================================================
+   BASIC HELPERS
+   ========================================================= */
+
+const $ = (s, r = document) => r.querySelector(s);
+
+const $$ = (s, r = document) =>
+  [...r.querySelectorAll(s)];
+
+
+/* =========================================================
+   LOCAL STORAGE
+   ========================================================= */
+
+const STORE_KEY = 'almurattil_demo_v1';
+
+const SESSION_KEY = 'almurattil_demo_session';
 
 
 /* =========================================================
@@ -24,43 +40,118 @@ let supabaseClient = null;
 
 
 /*
-  Create the Supabase client only if the Supabase browser
-  library has already loaded.
+   Loads Supabase automatically.
 
-  This prevents the rest of the existing website from
-  breaking if Supabase is temporarily unavailable.
+   This means your existing HTML files do NOT need
+   a separate Supabase <script> tag.
 */
-if (
-  typeof window !== 'undefined' &&
-  window.supabase &&
-  typeof window.supabase.createClient === 'function'
-) {
-  supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
+
+async function loadSupabaseLibrary() {
+
+  if (
+    window.supabase &&
+    typeof window.supabase.createClient === 'function'
+  ) {
+
+    return true;
+  }
+
+
+  return new Promise(resolve => {
+
+    const existing =
+      document.querySelector(
+        'script[data-almurattil-supabase]'
+      );
+
+
+    if (existing) {
+
+      existing.addEventListener(
+        'load',
+        () => resolve(true)
+      );
+
+      existing.addEventListener(
+        'error',
+        () => resolve(false)
+      );
+
+      return;
+    }
+
+
+    const script =
+      document.createElement('script');
+
+
+    script.src =
+      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+
+
+    script.async = true;
+
+
+    script.setAttribute(
+      'data-almurattil-supabase',
+      'true'
+    );
+
+
+    script.onload =
+      () => resolve(true);
+
+
+    script.onerror =
+      () => resolve(false);
+
+
+    document.head.appendChild(
+      script
+    );
+
+  });
+}
+
+
+async function getSupabaseClient() {
+
+  if (supabaseClient) {
+
+    return supabaseClient;
+  }
+
+
+  const loaded =
+    await loadSupabaseLibrary();
+
+
+  if (
+    !loaded ||
+    !window.supabase
+  ) {
+
+    console.warn(
+      'Supabase library could not be loaded.'
+    );
+
+    return null;
+  }
+
+
+  supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+
+  return supabaseClient;
 }
 
 
 /* =========================================================
-   EXISTING HELPER FUNCTIONS
-   PRESERVED
-   ========================================================= */
-
-const $ = (s, r = document) => r.querySelector(s);
-
-const $$ = (s, r = document) =>
-  [...r.querySelectorAll(s)];
-
-
-const STORE_KEY = 'almurattil_demo_v1';
-
-const SESSION_KEY = 'almurattil_demo_session';
-
-
-/* =========================================================
    EXISTING DEMO / FALLBACK DATA
-   PRESERVED
    ========================================================= */
 
 const seed = {
@@ -71,7 +162,8 @@ const seed = {
       id: 'TQ101',
       name: 'Tajweed Level 1',
       length: '12 weeks',
-      schedule: 'Tuesday & Thursday · 6:30 PM',
+      schedule:
+        'Tuesday & Thursday · 6:30 PM',
       fee: 'MVR 1,250',
       status: 'active'
     },
@@ -80,7 +172,8 @@ const seed = {
       id: 'TQ201',
       name: 'Tajweed Level 2',
       length: '12 weeks',
-      schedule: 'Sunday & Wednesday · 7:00 PM',
+      schedule:
+        'Sunday & Wednesday · 7:00 PM',
       fee: 'MVR 1,450',
       status: 'active'
     },
@@ -89,16 +182,19 @@ const seed = {
       id: 'NQ100',
       name: 'Noorani Qaida',
       length: '10 weeks',
-      schedule: 'Saturday & Monday · 5:30 PM',
+      schedule:
+        'Saturday & Monday · 5:30 PM',
       fee: 'MVR 950',
       status: 'active'
     },
 
     {
       id: 'HF101',
-      name: 'Hifz (Memorisation) Program',
+      name:
+        'Hifz (Memorisation) Program',
       length: 'Ongoing',
-      schedule: 'Flexible guided sessions',
+      schedule:
+        'Flexible guided sessions',
       fee: 'MVR 1,600',
       status: 'active'
     }
@@ -110,14 +206,18 @@ const seed = {
 
     {
       id: 'ANN001',
-      title: 'October 2026 intake is open',
+
+      title:
+        'October 2026 intake is open',
 
       body:
         'Applications are being accepted for selected Qur’an learning programmes. Complete the registration form and submit your payment details for review.',
 
-      tag: 'Admissions',
+      tag:
+        'Admissions',
 
-      date: '2026-09-13'
+      date:
+        '2026-09-13'
     }
 
   ],
@@ -126,7 +226,8 @@ const seed = {
   users: [
 
     {
-      id: 'USR001',
+      id:
+        'USR001',
 
       full_name:
         'Demo Administrator',
@@ -146,7 +247,8 @@ const seed = {
 
 
     {
-      id: 'USR002',
+      id:
+        'USR002',
 
       full_name:
         'Demo Teacher',
@@ -166,7 +268,8 @@ const seed = {
 
 
     {
-      id: 'USR003',
+      id:
+        'USR003',
 
       full_name:
         'Demo Student',
@@ -295,20 +398,25 @@ const seed = {
 
 
 /* =========================================================
-   EXISTING DATABASE HELPERS
-   PRESERVED
+   CLONE
    ========================================================= */
 
 function clone(x) {
+
   return JSON.parse(
     JSON.stringify(x)
   );
 }
 
 
+/* =========================================================
+   DATABASE
+   ========================================================= */
+
 function db() {
 
   let d;
+
 
   try {
 
@@ -321,54 +429,113 @@ function db() {
   } catch {}
 
 
+  /*
+     First visit
+  */
+
   if (!d) {
 
-    d = clone(seed);
+    d =
+      clone(seed);
 
     saveDb(d);
   }
 
 
   /*
-    Safety checks.
+     IMPORTANT DATA PROTECTION
 
-    These ensure older browser data does not break if a
-    property is missing.
+     Repair missing sections individually.
+
+     Existing users/applications/etc. are NOT replaced.
   */
 
-  if (!Array.isArray(d.courses)) {
-    d.courses = clone(seed.courses);
-  }
+  if (
+    !Array.isArray(
+      d.users
+    )
+  ) {
 
-  if (!Array.isArray(d.announcements)) {
-    d.announcements =
-      clone(seed.announcements);
-  }
-
-  if (!Array.isArray(d.users)) {
     d.users =
       clone(seed.users);
   }
 
-  if (!Array.isArray(d.applications)) {
+
+  if (
+    !Array.isArray(
+      d.applications
+    )
+  ) {
+
     d.applications =
       clone(seed.applications);
   }
 
-  if (!Array.isArray(d.enrollments)) {
+
+  if (
+    !Array.isArray(
+      d.enrollments
+    )
+  ) {
+
     d.enrollments =
       clone(seed.enrollments);
   }
 
-  if (!Array.isArray(d.teacherApplications)) {
-    d.teacherApplications =
-      clone(seed.teacherApplications);
+
+  if (
+    !Array.isArray(
+      d.announcements
+    )
+  ) {
+
+    d.announcements =
+      clone(seed.announcements);
   }
+
+
+  if (
+    !Array.isArray(
+      d.teacherApplications
+    )
+  ) {
+
+    d.teacherApplications =
+      clone(
+        seed.teacherApplications
+      );
+  }
+
+
+  /*
+     Repair the earlier empty-course issue.
+
+     This happens only when the course array is
+     missing or completely empty.
+  */
+
+  if (
+    !Array.isArray(
+      d.courses
+    ) ||
+    d.courses.length === 0
+  ) {
+
+    d.courses =
+      clone(seed.courses);
+  }
+
+
+  saveDb(d);
 
 
   return d;
 }
 
+
+/* =========================================================
+   SAVE DATABASE
+   ========================================================= */
 
 function saveDb(d) {
 
@@ -380,14 +547,15 @@ function saveDb(d) {
 
 
 /* =========================================================
-   EXISTING ID / REFERENCE HELPERS
-   PRESERVED
+   ID GENERATION
    ========================================================= */
 
 function uid(prefix) {
 
   return (
+
     prefix +
+
     Date.now()
       .toString(36)
       .toUpperCase() +
@@ -396,9 +564,14 @@ function uid(prefix) {
       .toString(36)
       .slice(2, 5)
       .toUpperCase()
+
   );
 }
 
+
+/* =========================================================
+   APPLICATION REFERENCE
+   ========================================================= */
 
 function nextReference(d) {
 
@@ -409,8 +582,7 @@ function nextReference(d) {
 
 
 /* =========================================================
-   EXISTING SESSION / LOGIN SYSTEM
-   PRESERVED
+   SESSION
    ========================================================= */
 
 function session() {
@@ -430,31 +602,39 @@ function session() {
 }
 
 
+/* =========================================================
+   LOGIN
+   ========================================================= */
+
 function login(
   email,
   password
 ) {
 
-  const d = db();
+  const d =
+    db();
 
 
-  const u = d.users.find(
-    x =>
+  const u =
+    d.users.find(
 
-      x.email
-        .toLowerCase() ===
-      email.toLowerCase()
+      x =>
 
-      &&
+        x.email
+          .toLowerCase() ===
+        email.toLowerCase()
 
-      x.password ===
-      password
+        &&
 
-      &&
+        x.password ===
+        password
 
-      x.status ===
-      'active'
-  );
+        &&
+
+        x.status ===
+        'active'
+
+    );
 
 
   if (!u) {
@@ -466,17 +646,23 @@ function login(
 
 
   localStorage.setItem(
+
     SESSION_KEY,
 
     JSON.stringify({
       user_id: u.id
     })
+
   );
 
 
   return u;
 }
 
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
 
 function logout() {
 
@@ -486,32 +672,51 @@ function logout() {
 }
 
 
+/* =========================================================
+   CURRENT USER
+   ========================================================= */
+
 function currentUser() {
 
-  const s = session();
+  const s =
+    session();
 
 
   if (!s) {
+
     return null;
   }
 
 
   return (
+
     db().users.find(
-      x => x.id === s.user_id
-    ) || null
+      x =>
+        x.id ===
+        s.user_id
+    ) ||
+
+    null
+
   );
 }
 
 
+/* =========================================================
+   REQUIRE USER
+   ========================================================= */
+
 function requireUser() {
 
-  const u = currentUser();
+  const u =
+    currentUser();
 
 
   if (!u) {
 
-    location.href = '/login';
+    location.href =
+      '/login';
+
 
     throw new Error(
       'Not signed in'
@@ -524,28 +729,40 @@ function requireUser() {
 
 
 /* =========================================================
-   EXISTING NAVIGATION
-   PRESERVED
+   ACTIVE NAVIGATION
    ========================================================= */
 
 function setActiveNav() {
 
   const p =
+
     location.pathname
-      .replace(/\.html$/, '') ||
+      .replace(
+        /\.html$/,
+        ''
+      ) ||
+
     '/';
 
 
   $$('.navlinks a')
     .forEach(a => {
 
-      const destination =
-        new URL(a.href)
+      const target =
+
+        new URL(
+          a.href
+        )
           .pathname
-          .replace(/\.html$/, '');
+          .replace(
+            /\.html$/,
+            ''
+          );
 
 
-      if (destination === p) {
+      if (
+        target === p
+      ) {
 
         a.classList.add(
           'active'
@@ -557,8 +774,7 @@ function setActiveNav() {
 
 
 /* =========================================================
-   EXISTING MESSAGE HELPER
-   PRESERVED
+   MESSAGE
    ========================================================= */
 
 function showMessage(
@@ -570,8 +786,10 @@ function showMessage(
   el.className =
     kind;
 
+
   el.textContent =
     msg;
+
 
   el.classList.remove(
     'hidden'
@@ -580,8 +798,7 @@ function showMessage(
 
 
 /* =========================================================
-   EXISTING COURSE NAME HELPER
-   PRESERVED
+   COURSE NAME
    ========================================================= */
 
 function courseName(
@@ -590,17 +807,20 @@ function courseName(
 ) {
 
   return (
+
     d.courses.find(
-      c => c.id === code
+      c =>
+        c.id === code
     )?.name ||
+
     code
+
   );
 }
 
 
 /* =========================================================
-   EXISTING RESET FUNCTION
-   PRESERVED
+   RESET DEMO
    ========================================================= */
 
 function resetDemo() {
@@ -609,56 +829,399 @@ function resetDemo() {
     STORE_KEY
   );
 
+
   localStorage.removeItem(
     SESSION_KEY
   );
+
 
   db();
 }
 
 
 /* =========================================================
-   NEW:
-   SUPABASE COURSE SYNCHRONISATION
+   SUPABASE COURSE NORMALISER
+   ========================================================= */
 
-   This is the only new database behaviour currently added.
+function normaliseSupabaseCourse(
+  course
+) {
 
-   It DOES NOT delete:
-   - users
-   - applications
-   - enrollments
-   - announcements
-   - teacher applications
+  return {
+
+    id:
+      course.id,
+
+    name:
+      course.name,
+
+    length:
+      course.length || '',
+
+    schedule:
+      course.schedule || '',
+
+    fee:
+      course.fee || '',
+
+    status:
+      course.status || 'active',
+
+    delivery_type:
+      course.delivery_type ||
+      'live',
+
+    google_meet_enabled:
+      Boolean(
+        course.google_meet_enabled
+      ),
+
+    moodle_enabled:
+      Boolean(
+        course.moodle_enabled
+      ),
+
+    moodle_course_id:
+      course.moodle_course_id ||
+      null,
+
+    moodle_course_url:
+      course.moodle_course_url ||
+      null
+
+  };
+}
+
+
+/* =========================================================
+   MERGE SUPABASE COURSES INTO LOCAL DATA
+
+   This does NOT delete local-only courses.
+
+   Existing applications/users/etc. are untouched.
+   ========================================================= */
+
+function mergeSupabaseCourses(
+  remoteCourses
+) {
+
+  const d =
+    db();
+
+
+  const byId =
+    new Map();
+
+
+  /*
+     Preserve every existing local course first.
+  */
+
+  d.courses.forEach(
+    course => {
+
+      byId.set(
+        course.id,
+        course
+      );
+    }
+  );
+
+
+  /*
+     Supabase updates courses with matching IDs
+     and adds new Supabase courses.
+  */
+
+  remoteCourses.forEach(
+    course => {
+
+      const remote =
+        normaliseSupabaseCourse(
+          course
+        );
+
+
+      const existing =
+        byId.get(
+          remote.id
+        ) || {};
+
+
+      byId.set(
+
+        remote.id,
+
+        {
+          ...existing,
+          ...remote
+        }
+
+      );
+
+    }
+  );
+
+
+  d.courses =
+    [...byId.values()];
+
+
+  saveDb(d);
+
+
+  return d.courses;
+}
+
+
+/* =========================================================
+   UPDATE PUBLIC COURSES PAGE
+   ========================================================= */
+
+function renderSupabaseCourses(
+  remoteCourses
+) {
+
+  const container =
+    $('#courses');
+
+
+  if (!container) {
+
+    return;
+  }
+
+
+  const courses =
+    remoteCourses
+
+      .map(
+        normaliseSupabaseCourse
+      )
+
+      .filter(
+        course =>
+          course.status ===
+          'active'
+      );
+
+
+  /*
+     IMPORTANT:
+
+     Never replace the current page with an empty result.
+
+     If Supabase returns nothing, the existing local
+     fallback remains visible.
+  */
+
+  if (
+    courses.length === 0
+  ) {
+
+    return;
+  }
+
+
+  container.innerHTML =
+
+    courses
+
+      .map(c => `
+
+        <article
+          class="card course-card"
+        >
+
+          <span class="pill">
+            ${c.id}
+          </span>
+
+          <h2>
+            ${c.name}
+          </h2>
+
+          <p class="muted">
+
+            ${c.length}
+
+            <br>
+
+            ${c.schedule}
+
+            <br>
+
+            <strong>
+              ${c.fee}
+            </strong>
+
+          </p>
+
+          <a
+            class="btn btn-primary"
+            href="/register?course=${encodeURIComponent(
+              c.id
+            )}"
+          >
+            Register
+          </a>
+
+        </article>
+
+      `)
+
+      .join('');
+}
+
+
+/* =========================================================
+   UPDATE REGISTRATION COURSE SELECT
+   ========================================================= */
+
+function renderSupabaseCourseSelect(
+  remoteCourses
+) {
+
+  const select =
+    $('#courseSelect');
+
+
+  if (!select) {
+
+    return;
+  }
+
+
+  const courses =
+    remoteCourses
+
+      .map(
+        normaliseSupabaseCourse
+      )
+
+      .filter(
+        course =>
+          course.status ===
+          'active'
+      );
+
+
+  if (
+    courses.length === 0
+  ) {
+
+    return;
+  }
+
+
+  const currentlySelected =
+    select.value;
+
+
+  const queryCourse =
+
+    new URLSearchParams(
+      location.search
+    ).get(
+      'course'
+    );
+
+
+  select.innerHTML =
+
+    '<option value="">Select a course</option>';
+
+
+  courses.forEach(
+    course => {
+
+      select.insertAdjacentHTML(
+
+        'beforeend',
+
+        `
+          <option value="${course.id}">
+            ${course.name}
+          </option>
+        `
+
+      );
+
+    }
+  );
+
+
+  const preferred =
+
+    currentlySelected ||
+
+    queryCourse;
+
+
+  if (
+    preferred &&
+    courses.some(
+      c =>
+        c.id === preferred
+    )
+  ) {
+
+    select.value =
+      preferred;
+  }
+}
+
+
+/* =========================================================
+   FETCH COURSES FROM SUPABASE
    ========================================================= */
 
 async function syncCoursesFromSupabase() {
 
-  /*
-    If Supabase did not initialise, keep using the local
-    courses. The rest of the website continues working.
-  */
-
-  if (!supabaseClient) {
-
-    console.warn(
-      'Supabase client is unavailable. Using local course data.'
-    );
-
-    return false;
-  }
-
-
   try {
 
-    const {
-      data: courses,
-      error
-    } = await supabaseClient
+    const client =
+      await getSupabaseClient();
 
-      .from('courses')
+
+    if (!client) {
+
+      console.warn(
+        'Supabase unavailable. Existing local course data remains active.'
+      );
+
+      return false;
+    }
+
+
+    const {
+      data,
+      error
+    } = await client
+
+      .from(
+        'courses'
+      )
 
       .select(
-        'id,name,length,schedule,fee,status,delivery_type,google_meet_enabled,moodle_enabled,moodle_course_id,moodle_course_url'
+        `
+          id,
+          name,
+          length,
+          schedule,
+          fee,
+          status,
+          delivery_type,
+          google_meet_enabled,
+          moodle_enabled,
+          moodle_course_id,
+          moodle_course_url
+        `
+      )
+
+      .eq(
+        'status',
+        'active'
       )
 
       .order(
@@ -672,95 +1235,63 @@ async function syncCoursesFromSupabase() {
     if (error) {
 
       console.error(
-        'Unable to load courses from Supabase:',
+        'Supabase courses error:',
         error
       );
 
-      return false;
-    }
-
-
-    if (!Array.isArray(courses)) {
 
       return false;
     }
 
 
     /*
-      Preserve the entire existing local database.
+       Critical protection:
 
-      ONLY replace d.courses.
+       Empty Supabase results must never erase
+       the existing website data.
     */
 
-    const d = db();
+    if (
+      !Array.isArray(data) ||
+      data.length === 0
+    ) {
+
+      console.warn(
+        'Supabase returned zero active courses. Existing local courses have been preserved.'
+      );
 
 
-    d.courses = courses.map(
-      course => ({
+      return false;
+    }
 
-        id:
-          course.id,
 
-        name:
-          course.name,
+    /*
+       Merge them into the existing browser data.
 
-        length:
-          course.length || '',
+       Only courses are touched.
+    */
 
-        schedule:
-          course.schedule || '',
-
-        fee:
-          course.fee || '',
-
-        status:
-          course.status || 'active',
-
-        /*
-          These are additional fields for the new
-          live/video/hybrid architecture.
-        */
-
-        delivery_type:
-          course.delivery_type ||
-          'live',
-
-        google_meet_enabled:
-          Boolean(
-            course.google_meet_enabled
-          ),
-
-        moodle_enabled:
-          Boolean(
-            course.moodle_enabled
-          ),
-
-        moodle_course_id:
-          course.moodle_course_id ||
-          null,
-
-        moodle_course_url:
-          course.moodle_course_url ||
-          null
-
-      })
+    mergeSupabaseCourses(
+      data
     );
 
 
-    saveDb(d);
-
-
     /*
-      Refresh only course-related parts of the page.
+       Update only the public course UI where applicable.
     */
 
-    refreshCoursePage();
+    renderSupabaseCourses(
+      data
+    );
 
-    refreshRegistrationCourseDropdown();
+
+    renderSupabaseCourseSelect(
+      data
+    );
 
 
     console.log(
-      'Courses successfully synced from Supabase.'
+      `Supabase connected successfully. ${data.length} active course(s) loaded.`
     );
 
 
@@ -769,9 +1300,10 @@ async function syncCoursesFromSupabase() {
   } catch (error) {
 
     console.error(
-      'Unexpected Supabase course sync error:',
+      'Supabase connection failed:',
       error
     );
+
 
     return false;
   }
@@ -779,265 +1311,39 @@ async function syncCoursesFromSupabase() {
 
 
 /* =========================================================
-   NEW:
-   REFRESH COURSES PAGE
-
-   Existing courses.html does not need to be changed.
-   ========================================================= */
-
-function refreshCoursePage() {
-
-  const container =
-    $('#courses');
-
-
-  /*
-    If we are not on the courses page,
-    do nothing.
-  */
-
-  if (!container) {
-    return;
-  }
-
-
-  const d = db();
-
-
-  const activeCourses =
-    d.courses.filter(
-      c =>
-        c.status ===
-        'active'
-    );
-
-
-  if (
-    activeCourses.length ===
-    0
-  ) {
-
-    container.innerHTML =
-      '<div class="card">No active courses.</div>';
-
-    return;
-  }
-
-
-  container.innerHTML =
-    activeCourses
-
-      .map(c => {
-
-        /*
-          Optional label for future
-          Moodle / Meet support.
-        */
-
-        let deliveryLabel = '';
-
-
-        if (
-          c.delivery_type ===
-          'video'
-        ) {
-
-          deliveryLabel =
-            '<span class="pill">Video course</span>';
-
-        } else if (
-          c.delivery_type ===
-          'hybrid'
-        ) {
-
-          deliveryLabel =
-            '<span class="pill">Hybrid course</span>';
-
-        } else if (
-          c.delivery_type ===
-          'live'
-        ) {
-
-          deliveryLabel =
-            '<span class="pill">Live course</span>';
-        }
-
-
-        return `
-
-          <article class="card course-card">
-
-            <span class="pill">
-              ${c.id}
-            </span>
-
-            ${deliveryLabel}
-
-            <h2>
-              ${c.name}
-            </h2>
-
-            <p class="muted">
-
-              ${c.length || ''}
-
-              ${
-                c.schedule
-                  ? `<br>${c.schedule}`
-                  : ''
-              }
-
-              ${
-                c.fee
-                  ? `<br><strong>${c.fee}</strong>`
-                  : ''
-              }
-
-            </p>
-
-
-            <a
-              class="btn btn-primary"
-              href="/register?course=${encodeURIComponent(
-                c.id
-              )}"
-            >
-              Register
-            </a>
-
-          </article>
-
-        `;
-
-      })
-
-      .join('');
-}
-
-
-/* =========================================================
-   NEW:
-   REFRESH REGISTRATION COURSE DROPDOWN
-
-   Existing register.html does not need to be changed.
-   ========================================================= */
-
-function refreshRegistrationCourseDropdown() {
-
-  const select =
-    $('#courseSelect');
-
-
-  /*
-    If this is not the registration page,
-    do nothing.
-  */
-
-  if (!select) {
-    return;
-  }
-
-
-  const d = db();
-
-
-  const selectedBeforeRefresh =
-    select.value;
-
-
-  const queryCourse =
-    new URLSearchParams(
-      location.search
-    ).get('course');
-
-
-  /*
-    Clear the current options before rebuilding them.
-  */
-
-  select.innerHTML =
-    '<option value="">Select a course</option>';
-
-
-  d.courses
-
-    .filter(
-      c =>
-        c.status ===
-        'active'
-    )
-
-    .forEach(c => {
-
-      select.insertAdjacentHTML(
-
-        'beforeend',
-
-        `
-          <option value="${c.id}">
-            ${c.name}
-          </option>
-        `
-      );
-
-    });
-
-
-  /*
-    Keep whichever course was already selected.
-
-    If there was no previous selection,
-    use ?course=TQ101 etc.
-  */
-
-  const preferredCourse =
-    selectedBeforeRefresh ||
-    queryCourse;
-
-
-  if (
-    preferredCourse &&
-    d.courses.some(
-      c =>
-        c.id ===
-        preferredCourse &&
-        c.status ===
-        'active'
-    )
-  ) {
-
-    select.value =
-      preferredCourse;
-  }
-}
-
-
-/* =========================================================
-   INITIAL PAGE LOAD
+   PAGE INITIALISATION
    ========================================================= */
 
 document.addEventListener(
+
   'DOMContentLoaded',
+
   () => {
 
     /*
-      Existing behaviour.
+       Existing behaviour
     */
 
     setActiveNav();
 
 
     /*
-      New behaviour:
+       Calling db() here repairs an earlier empty
+       course array but preserves all other existing data.
+    */
 
-      Fetch current course information from Supabase.
+    db();
 
-      This runs AFTER the existing page HTML/scripts have
-      loaded, so the current website remains functional
-      even while Supabase responds.
+
+    /*
+       Supabase course sync.
+
+       Website keeps working from localStorage even if
+       Supabase fails.
     */
 
     syncCoursesFromSupabase();
 
   }
+
 );
