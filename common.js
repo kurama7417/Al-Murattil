@@ -42,8 +42,8 @@ let supabaseClient = null;
 /*
    Loads Supabase automatically.
 
-   This means your existing HTML files do NOT need
-   a separate Supabase <script> tag.
+   Existing HTML files do not require
+   a separate Supabase script.
 */
 
 async function loadSupabaseLibrary() {
@@ -447,7 +447,7 @@ function db() {
 
      Repair missing sections individually.
 
-     Existing users/applications/etc. are NOT replaced.
+     Existing users/applications/etc. are not replaced.
   */
 
   if (
@@ -731,9 +731,13 @@ function requireUser() {
 /* =========================================================
    MOBILE NAVIGATION
 
-   The button and mobile styles are created here so the
-   existing HTML files and styles.css do not need editing.
-   Desktop navigation is left unchanged.
+   The mobile title, hamburger button and mobile styles
+   are created automatically.
+
+   The existing HTML files and styles.css do not
+   require editing.
+
+   Desktop navigation remains unchanged.
    ========================================================= */
 
 function initMobileNavigation() {
@@ -757,9 +761,51 @@ function initMobileNavigation() {
         display: none !important;
       }
 
+      .mobile-nav-title {
+        display: none !important;
+      }
+
       @media (max-width: 820px) {
+
         .has-mobile-navigation {
           position: relative;
+        }
+
+        .has-mobile-navigation > .mobile-nav-title {
+          display: flex !important;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          max-width: calc(100% - 150px);
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: var(--primary, #174d3b);
+          font-family: Georgia, 'Times New Roman', serif;
+          line-height: 1;
+          text-align: center;
+          transform: translate(-50%, -50%);
+          pointer-events: none;
+          z-index: 1000;
+        }
+
+        .mobile-nav-title-main {
+          font-size: clamp(0.95rem, 4vw, 1.18rem);
+          font-weight: 700;
+          letter-spacing: 0.015em;
+          white-space: nowrap;
+        }
+
+        .mobile-nav-title-subtitle {
+          margin-top: 4px;
+          color: var(--gold, #ad8227);
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: clamp(0.52rem, 2.15vw, 0.66rem);
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          line-height: 1.1;
+          text-transform: uppercase;
+          white-space: nowrap;
         }
 
         .mobile-nav-toggle {
@@ -773,10 +819,14 @@ function initMobileNavigation() {
           flex-direction: column;
           gap: 5px;
           color: var(--primary, #174d3b);
-          background: var(--surface, #ffffff);
-          border: 1px solid rgba(23, 77, 59, 0.22);
-          border-radius: 12px;
-          box-shadow: 0 5px 16px rgba(0, 0, 0, 0.08);
+          background: transparent !important;
+          border: 0 !important;
+          border-radius: 0;
+          box-shadow: none !important;
+          outline: none;
+          appearance: none;
+          -webkit-appearance: none;
+          -webkit-tap-highlight-color: transparent;
           cursor: pointer;
           touch-action: manipulation;
           z-index: 1002;
@@ -784,12 +834,9 @@ function initMobileNavigation() {
 
         .mobile-nav-toggle:hover,
         .mobile-nav-toggle:focus-visible {
-          background: rgba(23, 77, 59, 0.08);
-        }
-
-        .mobile-nav-toggle:focus-visible {
-          outline: 3px solid rgba(200, 157, 56, 0.38);
-          outline-offset: 2px;
+          color: var(--gold, #ad8227);
+          background: transparent !important;
+          outline: none;
         }
 
         .mobile-nav-toggle span {
@@ -798,11 +845,15 @@ function initMobileNavigation() {
           height: 2px;
           border-radius: 999px;
           background: currentColor;
-          transition: transform 180ms ease, opacity 180ms ease;
+          transition:
+            transform 180ms ease,
+            opacity 180ms ease;
         }
 
         .mobile-nav-toggle.is-open span:nth-child(1) {
-          transform: translateY(7px) rotate(45deg);
+          transform:
+            translateY(7px)
+            rotate(45deg);
         }
 
         .mobile-nav-toggle.is-open span:nth-child(2) {
@@ -810,33 +861,49 @@ function initMobileNavigation() {
         }
 
         .mobile-nav-toggle.is-open span:nth-child(3) {
-          transform: translateY(-7px) rotate(-45deg);
+          transform:
+            translateY(-7px)
+            rotate(-45deg);
         }
 
-        .has-mobile-navigation > .navlinks[data-mobile-menu-ready="true"] {
+        .has-mobile-navigation >
+        .navlinks[data-mobile-menu-ready="true"] {
+
           display: none !important;
           position: absolute !important;
           top: calc(100% + 10px);
           right: 0;
           left: auto;
-          width: min(320px, calc(100vw - 32px));
+          width: min(
+            320px,
+            calc(100vw - 32px)
+          );
           margin: 0;
           padding: 10px;
           flex-direction: column !important;
           align-items: stretch !important;
           gap: 4px !important;
-          background: var(--surface, #ffffff);
-          border: 1px solid rgba(23, 77, 59, 0.14);
+          background:
+            var(--surface, #ffffff);
+          border:
+            1px solid
+            rgba(23, 77, 59, 0.14);
           border-radius: 16px;
-          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.16);
+          box-shadow:
+            0 18px 45px
+            rgba(0, 0, 0, 0.16);
           z-index: 1001;
         }
 
-        .has-mobile-navigation > .navlinks[data-mobile-menu-ready="true"].is-open {
+        .has-mobile-navigation >
+        .navlinks[data-mobile-menu-ready="true"].is-open {
+
           display: flex !important;
         }
 
-        .has-mobile-navigation > .navlinks[data-mobile-menu-ready="true"] a {
+        .has-mobile-navigation >
+        .navlinks[data-mobile-menu-ready="true"] a {
+
           display: block;
           width: 100%;
           margin: 0;
@@ -896,6 +963,33 @@ function initMobileNavigation() {
       );
 
 
+      /*
+         Create the centred institute title.
+      */
+
+      const title =
+        document.createElement('div');
+
+
+      title.className =
+        'mobile-nav-title';
+
+
+      title.setAttribute(
+        'aria-label',
+        'Al Murattil Quran Institute'
+      );
+
+
+      title.innerHTML =
+        '<span class="mobile-nav-title-main">Al Murattil</span>' +
+        '<span class="mobile-nav-title-subtitle">Quran Institute</span>';
+
+
+      /*
+         Create the borderless hamburger button.
+      */
+
       const button =
         document.createElement('button');
 
@@ -927,7 +1021,15 @@ function initMobileNavigation() {
 
 
       button.innerHTML =
-        '<span></span><span></span><span></span>';
+        '<span></span>' +
+        '<span></span>' +
+        '<span></span>';
+
+
+      container.insertBefore(
+        title,
+        navLinks
+      );
 
 
       container.insertBefore(
@@ -1266,9 +1368,10 @@ function normaliseSupabaseCourse(
 /* =========================================================
    MERGE SUPABASE COURSES INTO LOCAL DATA
 
-   This does NOT delete local-only courses.
+   This does not delete local-only courses.
 
-   Existing applications/users/etc. are untouched.
+   Existing applications, users and other records
+   remain untouched.
    ========================================================= */
 
 function mergeSupabaseCourses(
@@ -1299,7 +1402,7 @@ function mergeSupabaseCourses(
 
 
   /*
-     Supabase updates courses with matching IDs
+     Supabase updates matching courses
      and adds new Supabase courses.
   */
 
@@ -1377,12 +1480,8 @@ function renderSupabaseCourses(
 
 
   /*
-     IMPORTANT:
-
-     Never replace the current page with an empty result.
-
-     If Supabase returns nothing, the existing local
-     fallback remains visible.
+     Never replace the current page with
+     an empty result.
   */
 
   if (
@@ -1615,10 +1714,8 @@ async function syncCoursesFromSupabase() {
 
 
     /*
-       Critical protection:
-
        Empty Supabase results must never erase
-       the existing website data.
+       existing website data.
     */
 
     if (
@@ -1636,9 +1733,7 @@ async function syncCoursesFromSupabase() {
 
 
     /*
-       Merge them into the existing browser data.
-
-       Only courses are touched.
+       Only course information is updated.
     */
 
     mergeSupabaseCourses(
@@ -1647,7 +1742,7 @@ async function syncCoursesFromSupabase() {
 
 
     /*
-       Update only the public course UI where applicable.
+       Update the public course interfaces.
     */
 
     renderSupabaseCourses(
@@ -1700,18 +1795,18 @@ document.addEventListener(
 
 
     /*
-       Calling db() here repairs an earlier empty
-       course array but preserves all other existing data.
+       Repair an empty local course array while
+       preserving all other existing data.
     */
 
     db();
 
 
     /*
-       Supabase course sync.
+       Synchronise active courses from Supabase.
 
-       Website keeps working from localStorage even if
-       Supabase fails.
+       The website continues using localStorage
+       if Supabase is unavailable.
     */
 
     syncCoursesFromSupabase();
