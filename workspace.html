@@ -1,14 +1,254 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Workspace · Al Murattil</title><link rel="stylesheet" href="/styles.css"></head><body>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Workspace · Al Murattil</title><link rel="stylesheet" href="/styles.css">
+<style>
+.learning-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.learning-card{display:flex;flex-direction:column;gap:10px}
+.learning-card h2,.learning-card h3{margin:0}
+.learning-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.learning-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}
+.learning-form .full{grid-column:1/-1}
+.learning-section{margin-bottom:24px}
+.file-note{font-size:13px;color:var(--muted);margin-top:5px}
+.status-badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;text-transform:capitalize}
+.status-present,.status-submitted,.status-graded{background:#e8f4eb;color:#24623c}
+.status-absent,.status-overdue{background:#faeaea;color:#8b2e2e}
+.status-late,.status-pending{background:#fff4d8;color:#765814}
+.status-excused{background:#e9eef8;color:#35548a}
+.empty-state{text-align:center;padding:34px}
+.assignment-response{white-space:pre-wrap;background:#f4f7f5;border-radius:12px;padding:12px}
+@media(max-width:780px){.learning-grid,.learning-form{grid-template-columns:1fr}.learning-form .full{grid-column:auto}}
+</style></head><body>
 <header class="topbar"><div class="shell nav"><a class="brand" href="/"><img src="/logo.png" alt="Al Murattil logo"><span>Al Murattil Quran Institute</span></a><nav class="navlinks"><a href="/">Home</a><a href="/announcements">Announcements</a><a href="/courses">Courses</a><button id="logout" class="btn btn-secondary">Log out</button></nav></div></header>
 <main class="shell"><div class="page-head workspace-head"><div><div class="eyebrow" id="roleLabel">Workspace</div><h1 id="welcome"></h1><p class="lead">The same workspace page adapts to the signed-in account. There are no public Student/Teacher/Admin portal pages.</p></div></div><div id="tabs" class="tabs"></div><div id="panels"></div></main>
 <footer class="footer"><div class="shell">© 2026 Al Murattil Quran Institute</div></footer><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/common.js"></script><script>
 const user=requireUser(); let data=db();
-const templates={student:[['overview','Overview'],['courses','My courses'],['progress','Progress']],teacher:[['overview','Overview'],['courses','Teaching'],['students','Students']],admin:[['overview','Overview'],['applications','Student applications'],['users','Users'],['teacherapps','Teacher recruitment'],['courses','Manage courses'],['announcements','Announcements']]};
+const templates={student:[['overview','Overview'],['courses','My courses'],['notes','Notes'],['attendance','Attendance'],['assignments','Assignments'],['classroom','Classroom']],teacher:[['overview','Overview'],['courses','Teaching'],['students','Students'],['notes','Notes'],['attendance','Attendance'],['assignments','Assignments'],['classroom','Classroom']],admin:[['overview','Overview'],['applications','Student applications'],['users','Users'],['teacherapps','Teacher recruitment'],['courses','Manage courses'],['announcements','Announcements']]};
 function esc(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function tabs(){const a=templates[user.role]||[['overview','Overview']];$('#tabs').innerHTML=a.map((x,i)=>`<button class="tab ${i?'':'active'}" data-tab="${x[0]}">${x[1]}</button>`).join('');$('#panels').innerHTML=a.map((x,i)=>`<section id="panel-${x[0]}" class="panel ${i?'':'active'}"></section>`).join('');$$('.tab').forEach(b=>b.onclick=()=>{$$('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#panel-'+b.dataset.tab).classList.add('active')})}
 function overview(){let extras='';if(user.role==='admin') extras=`<div class="stat-grid"><div class="card stat"><strong>${data.applications.filter(x=>x.status==='pending').length}</strong><span>pending student applications</span></div><div class="card stat"><strong>${data.users.length}</strong><span>users</span></div><div class="card stat"><strong>${data.courses.filter(x=>x.status==='active').length}</strong><span>active courses</span></div></div>`;$('#panel-overview').innerHTML=`<div class="card"><h2>${esc(user.role[0].toUpperCase()+user.role.slice(1))} workspace</h2><p class="muted">Signed in as ${esc(user.full_name)} (${esc(user.email)}).</p></div>${extras}`}
-function student(){const e=data.enrollments.filter(x=>x.user_id===user.id);$('#panel-courses').innerHTML=e.length?`<div class="course-grid">${e.map(x=>`<div class="card"><span class="pill">${esc(x.course_code)}</span><h2>${esc(courseName(x.course_code,data))}</h2><p class="muted">Enrollment: ${esc(x.status)}</p></div>`).join('')}</div>`:'<div class="card">No active enrollment yet.</div>';$('#panel-progress').innerHTML=e.length?e.map(x=>`<div class="card"><h2>${esc(courseName(x.course_code,data))}</h2><p>${x.progress||0}% complete</p><progress max="100" value="${x.progress||0}" style="width:100%"></progress></div>`).join(''):'<div class="card">Progress will appear after enrollment.</div>'}
-function teacher(){const active=data.courses.filter(x=>x.status==='active');$('#panel-courses').innerHTML=`<div class="course-grid">${active.map(c=>`<div class="card"><span class="pill">${c.id}</span><h2>${esc(c.name)}</h2><p class="muted">Demo teaching card. Teacher assignments will be database-driven later.</p></div>`).join('')}</div>`;const students=data.users.filter(x=>x.role==='student');$('#panel-students').innerHTML=table(['Student','Email','Status'],students.map(s=>[esc(s.full_name),esc(s.email),esc(s.status)]))}
+
+function ensureLearningData(){
+  let changed=false;
+  [['notes',[]],['attendance',[]],['assignments',[]],['submissions',[]],['classrooms',[]]].forEach(function(entry){
+    if(!Array.isArray(data[entry[0]])){data[entry[0]]=entry[1];changed=true}
+  });
+  if(changed)saveDb(data);
+}
+function formatDate(value){
+  if(!value)return '—';
+  const date=new Date(value.length===10?value+'T00:00:00':value);
+  return Number.isNaN(date.getTime())?esc(value):date.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+}
+function studentName(id){
+  const student=data.users.find(function(x){return x.id===id});
+  return student?student.full_name:'Unknown student';
+}
+function activeCourses(){
+  return data.courses.filter(function(x){return x.status==='active'});
+}
+function courseOptions(selected){
+  return activeCourses().map(function(c){
+    return '<option value="'+esc(c.id)+'" '+(c.id===selected?'selected':'')+'>'+esc(c.name)+' ('+esc(c.id)+')</option>';
+  }).join('');
+}
+function studentOptions(){
+  return data.users.filter(function(x){return x.role==='student'&&x.status==='active'}).map(function(s){
+    return '<option value="'+esc(s.id)+'">'+esc(s.full_name)+' ('+esc(s.student_id||s.email)+')</option>';
+  }).join('');
+}
+function attachmentLink(note){
+  if(!note.file_data||!note.file_name)return '';
+  return '<a class="btn btn-secondary" href="'+esc(note.file_data)+'" download="'+esc(note.file_name)+'">Download '+esc(note.file_name)+'</a>';
+}
+function enrollmentCodes(enrollments){
+  return enrollments.filter(function(x){return x.status==='active'}).map(function(x){return x.course_code});
+}
+function renderStudentNotes(enrollments){
+  const codes=enrollmentCodes(enrollments);
+  const notes=data.notes.filter(function(n){return codes.includes(n.course_code)}).sort(function(a,b){return String(b.created_at).localeCompare(String(a.created_at))});
+  $('#panel-notes').innerHTML=notes.length?'<div class="learning-grid">'+notes.map(function(n){
+    return '<article class="card learning-card"><div class="learning-meta"><span class="pill">'+esc(n.course_code)+'</span><span class="muted small">'+formatDate(n.created_at)+'</span></div><h2>'+esc(n.title)+'</h2><p>'+esc(n.description||'No description provided.')+'</p>'+attachmentLink(n)+'</article>';
+  }).join('')+'</div>':'<div class="card empty-state"><h2>No notes yet</h2><p class="muted">Notes uploaded by your teacher will appear here.</p></div>';
+}
+function renderStudentAttendance(enrollments){
+  const codes=enrollmentCodes(enrollments);
+  const records=data.attendance.filter(function(a){return a.student_id===user.id&&codes.includes(a.course_code)}).sort(function(a,b){return String(b.class_date).localeCompare(String(a.class_date))});
+  const present=records.filter(function(a){return a.status==='present'}).length;
+  const summary=records.length?'<div class="stat-grid"><div class="card stat"><strong>'+records.length+'</strong><span>classes recorded</span></div><div class="card stat"><strong>'+present+'</strong><span>present</span></div><div class="card stat"><strong>'+Math.round((present/records.length)*100)+'%</strong><span>attendance rate</span></div></div>':'';
+  const rows=records.map(function(a){return [formatDate(a.class_date),esc(courseName(a.course_code,data)),'<span class="status-badge status-'+esc(a.status)+'">'+esc(a.status)+'</span>',esc(a.note||'—')]});
+  $('#panel-attendance').innerHTML=summary+(records.length?'<div class="learning-section">'+table(['Class date','Course','Status','Teacher note'],rows)+'</div>':'<div class="card empty-state"><h2>No attendance recorded</h2><p class="muted">Your teacher will record attendance after each class.</p></div>');
+}
+function renderStudentAssignments(enrollments){
+  const codes=enrollmentCodes(enrollments);
+  const assignments=data.assignments.filter(function(a){return codes.includes(a.course_code)}).sort(function(a,b){return String(a.due_date).localeCompare(String(b.due_date))});
+  $('#panel-assignments').innerHTML=assignments.length?'<div class="learning-grid">'+assignments.map(function(a){
+    const submission=data.submissions.find(function(s){return s.assignment_id===a.id&&s.student_id===user.id});
+    const overdue=!submission&&a.due_date&&a.due_date<new Date().toISOString().slice(0,10);
+    const status=submission?(submission.grade!==''&&submission.grade!=null?'graded':'submitted'):(overdue?'overdue':'pending');
+    const submittedLine=submission?'<p class="muted small"><strong>Submitted:</strong> '+formatDate(submission.submitted_at)+'</p>':'<p class="muted small">Not submitted yet.</p>';
+    const gradeLine=submission&&submission.grade!==''&&submission.grade!=null?'<div class="notice"><strong>Grade:</strong> '+esc(submission.grade)+'<br><strong>Teacher feedback:</strong> '+esc(submission.feedback||'No feedback added.')+'</div>':'';
+    return '<article class="card learning-card"><div class="learning-meta"><span class="pill">'+esc(a.course_code)+'</span><span class="status-badge status-'+status+'">'+status+'</span></div><h2>'+esc(a.title)+'</h2><p>'+esc(a.instructions||'No additional instructions.')+'</p><p><strong>Due:</strong> '+formatDate(a.due_date)+'</p>'+submittedLine+gradeLine+'<button class="btn btn-primary" onclick="submitAssignment(\''+esc(a.id)+'\')">'+(submission?'Update submission':'Submit assignment')+'</button></article>';
+  }).join('')+'</div>':'<div class="card empty-state"><h2>No assignments yet</h2><p class="muted">Assignments created by your teacher will appear here.</p></div>';
+}
+window.submitAssignment=function(id){
+  const assignment=data.assignments.find(function(a){return a.id===id});
+  if(!assignment)return;
+  const existing=data.submissions.find(function(s){return s.assignment_id===id&&s.student_id===user.id});
+  const response=prompt('Enter your assignment response:',existing?existing.response:'');
+  if(response===null)return;
+  if(!response.trim())return alert('Please enter your assignment response.');
+  if(existing){
+    existing.response=response.trim();
+    existing.submitted_at=new Date().toISOString();
+    existing.grade='';
+    existing.feedback='';
+  }else{
+    data.submissions.push({id:uid('SUB'),assignment_id:id,student_id:user.id,response:response.trim(),submitted_at:new Date().toISOString(),grade:'',feedback:''});
+  }
+  saveDb(data);student();alert('Assignment submitted successfully.');
+};
+function renderStudentClassroom(enrollments){
+  const codes=enrollmentCodes(enrollments);
+  const rooms=data.classrooms.filter(function(r){return codes.includes(r.course_code)&&r.meet_url});
+  $('#panel-classroom').innerHTML=rooms.length?'<div class="learning-grid">'+rooms.map(function(r){
+    return '<article class="card learning-card"><span class="pill">'+esc(r.course_code)+'</span><h2>'+esc(courseName(r.course_code,data))+'</h2><p class="muted">Use the button below at your scheduled class time.</p><a class="btn btn-primary" href="'+esc(r.meet_url)+'" target="_blank" rel="noopener noreferrer">Enter classroom</a></article>';
+  }).join('')+'</div>':'<div class="card empty-state"><h2>Classroom link not added yet</h2><p class="muted">Your Google Meet link will appear here when your teacher adds it.</p></div>';
+}
+function student(){
+  const e=data.enrollments.filter(function(x){return x.user_id===user.id});
+  $('#panel-courses').innerHTML=e.length?'<div class="course-grid">'+e.map(function(x){return '<div class="card"><span class="pill">'+esc(x.course_code)+'</span><h2>'+esc(courseName(x.course_code,data))+'</h2><p class="muted">Enrollment: '+esc(x.status)+'</p></div>'}).join('')+'</div>':'<div class="card">No active enrollment yet.</div>';
+  renderStudentNotes(e);
+  renderStudentAttendance(e);
+  renderStudentAssignments(e);
+  renderStudentClassroom(e);
+}
+function renderTeacherNotes(){
+  const notes=data.notes.slice().sort(function(a,b){return String(b.created_at).localeCompare(String(a.created_at))});
+  $('#panel-notes').innerHTML='<section class="card learning-section"><h2>Add course notes</h2><p class="muted">Upload a PDF, Word document, or add a written description. Demo files are stored only in this browser.</p><form id="noteForm" class="learning-form"><div class="field"><label for="noteCourse">Course</label><select id="noteCourse" required>'+courseOptions()+'</select></div><div class="field"><label for="noteTitle">Note title</label><input id="noteTitle" required></div><div class="field full"><label for="noteDescription">Description</label><textarea id="noteDescription"></textarea></div><div class="field full"><label for="noteFile">PDF or Word file</label><input id="noteFile" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><span class="file-note">Maximum demo file size: 1 MB.</span></div><div class="full"><button class="btn btn-primary" type="submit">Publish notes</button></div></form></section><section><h2>Published notes</h2>'+(notes.length?'<div class="learning-grid">'+notes.map(function(n){return '<article class="card learning-card"><span class="pill">'+esc(n.course_code)+'</span><h3>'+esc(n.title)+'</h3><p>'+esc(n.description||'No description.')+'</p>'+attachmentLink(n)+'<button class="btn btn-danger" onclick="deleteNote(\''+esc(n.id)+'\')">Delete</button></article>'}).join('')+'</div>':'<div class="card empty-state">No notes published yet.</div>')+'</section>';
+  $('#noteForm').addEventListener('submit',function(event){
+    event.preventDefault();
+    const course=$('#noteCourse').value;
+    const title=$('#noteTitle').value.trim();
+    const description=$('#noteDescription').value.trim();
+    const fileInput=$('#noteFile');
+    const selected=fileInput.files[0];
+    if(!course||!title)return;
+    const saveNote=function(fileName,fileData){
+      data.notes.push({id:uid('NOTE'),course_code:course,title:title,description:description,file_name:fileName||'',file_data:fileData||'',teacher_id:user.id,created_at:new Date().toISOString()});
+      saveDb(data);renderTeacherNotes();alert('Notes published.');
+    };
+    if(!selected)return saveNote('','');
+    if(selected.size>1024*1024)return alert('Please choose a file smaller than 1 MB for this demo.');
+    if(!/\.(pdf|doc|docx)$/i.test(selected.name))return alert('Only PDF or Word documents are supported.');
+    const reader=new FileReader();
+    reader.onload=function(){saveNote(selected.name,String(reader.result||''))};
+    reader.onerror=function(){alert('The selected file could not be read.')};
+    reader.readAsDataURL(selected);
+  });
+}
+window.deleteNote=function(id){
+  if(!confirm('Delete this note?'))return;
+  data.notes=data.notes.filter(function(n){return n.id!==id});
+  saveDb(data);renderTeacherNotes();
+};
+function renderTeacherAttendance(){
+  const records=data.attendance.slice().sort(function(a,b){return String(b.class_date).localeCompare(String(a.class_date))});
+  const rows=records.map(function(a){return [formatDate(a.class_date),esc(courseName(a.course_code,data)),esc(studentName(a.student_id)),'<span class="status-badge status-'+esc(a.status)+'">'+esc(a.status)+'</span>',esc(a.note||'—'),'<button class="btn btn-danger" onclick="deleteAttendance(\''+esc(a.id)+'\')">Delete</button>']});
+  $('#panel-attendance').innerHTML='<section class="card learning-section"><h2>Record attendance</h2><p class="muted">Add each student’s attendance after the class.</p><form id="attendanceForm" class="learning-form"><div class="field"><label for="attendanceCourse">Course</label><select id="attendanceCourse" required>'+courseOptions()+'</select></div><div class="field"><label for="attendanceDate">Class date</label><input id="attendanceDate" type="date" value="'+new Date().toISOString().slice(0,10)+'" required></div><div class="field"><label for="attendanceStudent">Student</label><select id="attendanceStudent" required>'+studentOptions()+'</select></div><div class="field"><label for="attendanceStatus">Status</label><select id="attendanceStatus"><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option><option value="excused">Excused</option></select></div><div class="field full"><label for="attendanceNote">Teacher note</label><input id="attendanceNote" placeholder="Optional"></div><div class="full"><button class="btn btn-primary" type="submit">Save attendance</button></div></form></section><section><h2>Attendance records</h2>'+(records.length?table(['Class date','Course','Student','Status','Note','Action'],rows):'<div class="card empty-state">No attendance recorded yet.</div>')+'</section>';
+  $('#attendanceForm').addEventListener('submit',function(event){
+    event.preventDefault();
+    const course=$('#attendanceCourse').value;
+    const studentId=$('#attendanceStudent').value;
+    const classDate=$('#attendanceDate').value;
+    const status=$('#attendanceStatus').value;
+    const note=$('#attendanceNote').value.trim();
+    if(!data.enrollments.some(function(e){return e.user_id===studentId&&e.course_code===course&&e.status==='active'}))return alert('This student is not actively enrolled in the selected course.');
+    const existing=data.attendance.find(function(a){return a.student_id===studentId&&a.course_code===course&&a.class_date===classDate});
+    if(existing){existing.status=status;existing.note=note;existing.teacher_id=user.id}else{data.attendance.push({id:uid('ATT'),course_code:course,student_id:studentId,class_date:classDate,status:status,note:note,teacher_id:user.id})}
+    saveDb(data);renderTeacherAttendance();alert('Attendance saved.');
+  });
+}
+window.deleteAttendance=function(id){
+  if(!confirm('Delete this attendance record?'))return;
+  data.attendance=data.attendance.filter(function(a){return a.id!==id});
+  saveDb(data);renderTeacherAttendance();
+};
+function renderTeacherAssignments(){
+  const assignments=data.assignments.slice().sort(function(a,b){return String(b.created_at).localeCompare(String(a.created_at))});
+  const assignmentCards=assignments.length?assignments.map(function(a){
+    const submissions=data.submissions.filter(function(s){return s.assignment_id===a.id});
+    const submissionList=submissions.length?submissions.map(function(s){
+      const graded=s.grade!==''&&s.grade!=null;
+      return '<div class="card learning-card"><div class="learning-meta"><strong>'+esc(studentName(s.student_id))+'</strong><span class="status-badge status-'+(graded?'graded':'submitted')+'">'+(graded?'graded':'submitted')+'</span></div><p class="muted small">Submitted: '+formatDate(s.submitted_at)+'</p><div class="assignment-response">'+esc(s.response)+'</div>'+(graded?'<p><strong>Grade:</strong> '+esc(s.grade)+'<br><strong>Feedback:</strong> '+esc(s.feedback||'—')+'</p>':'')+'<button class="btn btn-primary" onclick="gradeSubmission(\''+esc(s.id)+'\')">'+(graded?'Update grade':'Grade submission')+'</button></div>';
+    }).join(''):'<p class="muted">No submissions yet.</p>';
+    return '<article class="card learning-section"><div class="learning-meta"><span class="pill">'+esc(a.course_code)+'</span><span class="muted small">Due '+formatDate(a.due_date)+'</span></div><h2>'+esc(a.title)+'</h2><p>'+esc(a.instructions||'No instructions.')+'</p><details><summary><strong>Submissions ('+submissions.length+')</strong></summary><div class="learning-grid" style="margin-top:14px">'+submissionList+'</div></details><div class="actions"><button class="btn btn-danger" onclick="deleteAssignment(\''+esc(a.id)+'\')">Delete assignment</button></div></article>';
+  }).join(''):'<div class="card empty-state">No assignments created yet.</div>';
+  $('#panel-assignments').innerHTML='<section class="card learning-section"><h2>Create assignment</h2><form id="assignmentForm" class="learning-form"><div class="field"><label for="assignmentCourse">Course</label><select id="assignmentCourse" required>'+courseOptions()+'</select></div><div class="field"><label for="assignmentDue">Due date</label><input id="assignmentDue" type="date" required></div><div class="field full"><label for="assignmentTitle">Assignment title</label><input id="assignmentTitle" required></div><div class="field full"><label for="assignmentInstructions">Instructions</label><textarea id="assignmentInstructions"></textarea></div><div class="full"><button class="btn btn-primary" type="submit">Publish assignment</button></div></form></section><section><h2>Course assignments</h2>'+assignmentCards+'</section>';
+  $('#assignmentForm').addEventListener('submit',function(event){
+    event.preventDefault();
+    const course=$('#assignmentCourse').value;
+    const title=$('#assignmentTitle').value.trim();
+    const instructions=$('#assignmentInstructions').value.trim();
+    const due=$('#assignmentDue').value;
+    if(!course||!title||!due)return;
+    data.assignments.push({id:uid('ASG'),course_code:course,title:title,instructions:instructions,due_date:due,teacher_id:user.id,created_at:new Date().toISOString()});
+    saveDb(data);renderTeacherAssignments();alert('Assignment published.');
+  });
+}
+window.gradeSubmission=function(id){
+  const submission=data.submissions.find(function(s){return s.id===id});
+  if(!submission)return;
+  const grade=prompt('Enter the grade or mark:',submission.grade||'');
+  if(grade===null)return;
+  if(!grade.trim())return alert('Please enter a grade or mark.');
+  const feedback=prompt('Enter feedback for the student:',submission.feedback||'');
+  if(feedback===null)return;
+  submission.grade=grade.trim();
+  submission.feedback=feedback.trim();
+  submission.graded_at=new Date().toISOString();
+  submission.graded_by=user.id;
+  saveDb(data);renderTeacherAssignments();alert('Grade saved.');
+};
+window.deleteAssignment=function(id){
+  if(!confirm('Delete this assignment and its submissions?'))return;
+  data.assignments=data.assignments.filter(function(a){return a.id!==id});
+  data.submissions=data.submissions.filter(function(s){return s.assignment_id!==id});
+  saveDb(data);renderTeacherAssignments();
+};
+function validMeetUrl(value){
+  try{const url=new URL(value);return url.protocol==='https:'&&url.hostname==='meet.google.com'}catch(error){return false}
+}
+function renderTeacherClassroom(){
+  const rooms=data.classrooms.slice();
+  const rows=activeCourses().map(function(c){
+    const room=rooms.find(function(r){return r.course_code===c.id});
+    return [esc(c.id),esc(c.name),room?'<a href="'+esc(room.meet_url)+'" target="_blank" rel="noopener noreferrer">Open link</a>':'Not added',room?'<button class="btn btn-danger" onclick="removeClassroom(\''+esc(c.id)+'\')">Remove</button>':'—'];
+  });
+  $('#panel-classroom').innerHTML='<section class="card learning-section"><h2>Google Meet classroom</h2><p class="muted">Add or update the classroom link students will see for their enrolled course.</p><form id="classroomForm" class="learning-form"><div class="field"><label for="classroomCourse">Course</label><select id="classroomCourse" required>'+courseOptions()+'</select></div><div class="field"><label for="classroomUrl">Google Meet link</label><input id="classroomUrl" type="url" placeholder="https://meet.google.com/..." required></div><div class="full"><button class="btn btn-primary" type="submit">Save classroom link</button></div></form></section><section><h2>Classroom links</h2>'+table(['Code','Course','Meeting link','Action'],rows)+'</section>';
+  $('#classroomForm').addEventListener('submit',function(event){
+    event.preventDefault();
+    const course=$('#classroomCourse').value;
+    const meetUrl=$('#classroomUrl').value.trim();
+    if(!validMeetUrl(meetUrl))return alert('Please enter a valid https://meet.google.com link.');
+    const existing=data.classrooms.find(function(r){return r.course_code===course});
+    if(existing){existing.meet_url=meetUrl;existing.updated_at=new Date().toISOString();existing.teacher_id=user.id}else{data.classrooms.push({id:uid('ROOM'),course_code:course,meet_url:meetUrl,teacher_id:user.id,updated_at:new Date().toISOString()})}
+    saveDb(data);renderTeacherClassroom();alert('Classroom link saved.');
+  });
+}
+window.removeClassroom=function(courseCode){
+  if(!confirm('Remove this classroom link?'))return;
+  data.classrooms=data.classrooms.filter(function(r){return r.course_code!==courseCode});
+  saveDb(data);renderTeacherClassroom();
+};
+function teacher(){
+  const active=activeCourses();
+  $('#panel-courses').innerHTML='<div class="course-grid">'+active.map(function(c){return '<div class="card"><span class="pill">'+esc(c.id)+'</span><h2>'+esc(c.name)+'</h2><p class="muted">Manage this course’s notes, attendance, assignments and classroom link using the tabs above.</p></div>'}).join('')+'</div>';
+  const students=data.users.filter(function(x){return x.role==='student'});
+  $('#panel-students').innerHTML=table(['Student','Email','Status'],students.map(function(s){return [esc(s.full_name),esc(s.email),esc(s.status)]}));
+  renderTeacherNotes();
+  renderTeacherAttendance();
+  renderTeacherAssignments();
+  renderTeacherClassroom();
+}
 function table(head,rows){return `<div class="table-wrap"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${head.length}">No records.</td></tr>`}</tbody></table></div>`}
 function applications(){const rows=data.applications.map(a=>[esc(a.reference),`${esc(a.full_name)}<br><span class="muted small">${esc(a.email)}</span>`,esc(courseName(a.course_code,data)),`${esc(a.payment_method)}<br><span class="small">${esc(a.payment_reference)}</span>`,esc(a.status),a.status==='pending'?`<button class="btn btn-primary" onclick="approveApp('${a.id}')">Approve</button> <button class="btn btn-danger" onclick="rejectApp('${a.id}')">Reject</button>`:'—']);$('#panel-applications').innerHTML=table(['Reference','Name','Course','Payment','Status','Action'],rows)}
 window.approveApp=id=>{const a=data.applications.find(x=>x.id===id);if(!a)return;const pw=prompt('Temporary password for student:','Student123!');if(!pw||pw.length<8)return alert('Use at least 8 characters.');if(data.users.some(x=>x.email.toLowerCase()===a.email.toLowerCase()))return alert('A user with this email already exists.');const u={id:uid('USR'),full_name:a.full_name,email:a.email,password:pw,role:'student',status:'active',student_id:`STU-2026-${String(data.users.filter(x=>x.role==='student').length+1).padStart(4,'0')}`};data.users.push(u);data.enrollments.push({id:uid('ENR'),user_id:u.id,course_code:a.course_code,status:'active',progress:0});a.status='approved';saveDb(data);applications();users();overview();alert(`Approved. Student ID: ${u.student_id}\nLogin: ${u.email}\nTemporary password: ${pw}`)};
@@ -23,5 +263,5 @@ window.addCourse=()=>{const id=(prompt('Course code:')||'').toUpperCase();if(!id
 window.toggleCourse=id=>{const c=data.courses.find(x=>x.id===id);if(c){c.status=c.status==='active'?'inactive':'active';saveDb(data);manageCourses();overview()}};
 function announcements(){const rows=data.announcements.map(a=>[esc(a.date),esc(a.tag),esc(a.title),`<button class="btn btn-danger" onclick="deleteAnnouncement('${a.id}')">Delete</button>`]);$('#panel-announcements').innerHTML=`<div class="toolbar"><button class="btn btn-primary" onclick="addAnnouncement()">Post announcement</button></div>${table(['Date','Tag','Title','Action'],rows)}`}
 window.addAnnouncement=()=>{const title=prompt('Announcement title:');if(!title)return;const body=prompt('Announcement text:');if(!body)return;const tag=prompt('Tag:','General')||'General';data.announcements.unshift({id:uid('ANN'),title,body,tag,date:new Date().toISOString().slice(0,10)});saveDb(data);announcements()};window.deleteAnnouncement=id=>{data.announcements=data.announcements.filter(x=>x.id!==id);saveDb(data);announcements()};
-$('#roleLabel').textContent=user.role+' workspace';$('#welcome').textContent='Welcome, '+user.full_name;tabs();overview();if(user.role==='admin'){applications();users();teacherApps();manageCourses();announcements()}else if(user.role==='student')student();else teacher();$('#logout').onclick=()=>{logout();location.href='/login'};
+ensureLearningData();$('#roleLabel').textContent=user.role+' workspace';$('#welcome').textContent='Welcome, '+user.full_name;tabs();overview();if(user.role==='admin'){applications();users();teacherApps();manageCourses();announcements()}else if(user.role==='student')student();else teacher();$('#logout').onclick=()=>{logout();location.href='/login'};
 </script></body></html>
